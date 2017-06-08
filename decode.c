@@ -71,7 +71,7 @@ void main(int argc, char *argv[])
 	TOPHEADER fileHeader;
 	FILE *fp = fopen(argv[1], "r");
 	if (fp == NULL){
-		printf("file does not exist");
+		printf("file does not exist\n");
 		exit(1);
 	}
 	fread(&fileHeader, sizeof(fileHeader), 1, fp);
