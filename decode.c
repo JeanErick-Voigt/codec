@@ -8,6 +8,7 @@
 #define NTOH3(x) ((int) x[0] << 16) | ((int) (x[1]) << 8) | ((int) (x[2]))
 #define NTOH4(x) ((int) x[0] << 24) | ((int) (x[1]) << 16) | ((int) (x[2]) <<  8) | ((int) (x[3]))
 
+char * zergBreed(int breedType);
 long unsigned swap32(long unsigned val);
 
 typedef struct PcapFileHeader {
@@ -62,7 +63,15 @@ typedef struct zergPacketHeader {
 	uint16_t destinationZergID;
 	//uint32_t sequenceID;  try to do it in an array instead conversino
 	uint8_t sequenceID[4];
-}ZERG; 
+}ZERG;
+
+typedef struct statusPayload { 
+	uint8_t hitPoints[3];
+	uint8_t armor;
+	uint8_t maxHitPoints[3];
+	uint8_t statusType;
+	uint8_t speed[4];
+}STATUSPAYLOAD; 
 
 
 
@@ -91,6 +100,7 @@ void main(int argc, char *argv[])
 	fread(&ip, sizeof(ip), 1, fp);
 	ihl = ip.versionAndIHL & 0x0F;
 	version =  ip.versionAndIHL >> 4;
+	int ipLength = NTOH2(ip.iptotalLength);
 
 	UDP udp;
 	fread(&udp, sizeof(udp), 1, fp);
@@ -104,28 +114,54 @@ void main(int argc, char *argv[])
 	int zergLength  = NTOH3(zerg.totalLength);
 	int sequence = 	NTOH4(zerg.sequenceID);
 	int messageLength = zergLength - 12;
-	
+	printf("Message length of zerg message %d\n", messageLength);
 	int type = zerg.versionToType & 0xF;  // This is type of message
 	int zergVersion = zerg.versionToType >> 4;  // This is version
 	printf("Version: %d\n", zergVersion);
 
+	STATUSPAYLOAD status;
 	//if message type = 0  it is a message and can do this
 	// This is the message payload branch
+	printf("Sequence: %d\n", sequence);
+	printf("From: %d\n", zergSourceID);
+	printf("To: %d\n", zergDestinationID);
+	printf("Ip total length %d\n", ipLength);
+	//char * payloadLength = (char*) malloc((
+	char * messagePayload;
+	messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
+	messagePayload[messageLength] = '\0';
 	switch(type)
 	{
-		case 0:
+		case 0:  //regular payload
 			;
-			char * messagePayload; 
-			messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
+			//char * messagePayload; 
+			//messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
 			fread(messagePayload, messageLength, 1, fp);
-			messagePayload[messageLength] = '\0';
-			printf("Sequence: %d\n", sequence);
-			printf("From: %d\n", zergSourceID);
-			printf("To: %d\n", zergDestinationID);
-			//printf("Sequence: %d\n", sequence);
+			//messagePayload[messageLength] = '\0';
+			//printf("From: %d\n", zergSourceID);
+			//printf("To: %d\n", zergDestinationID);
 			printf("%s\n", messagePayload);
-	}	 
+			break;
+		case 1:   //status payload
+			;
+			fread(&status, sizeof(status), 1, fp);
+			fread(messagePayload, messageLength, 1, fp);
+			printf("Status Type is %d\n", status.statusType);
+			int statusType = status.statusType; 
+			int speed = NTOH4(status.speed);
+			int hitPoints = NTOH3(status.hitPoints);
+			int maxhp = NTOH3(status.maxHitPoints);
+			printf("Name    :%s\n", messagePayload); 
+			printf("Hp      :%d/%d\n", hitPoints, maxhp);
+			char * breed = zergBreed(statusType);
+			printf("Name    :%s\n",  breed);
+			printf("Armor   :%d\n", status.armor);
+			printf("Speed   :%x\n", speed);
+			//printf("name is: :%s", messagePayload);
+	}
+	//free(messagePayload);
 	fclose(fp);
+	//free(messagePayload)
 }
 
 
@@ -134,4 +170,62 @@ long unsigned swap32(long unsigned val)
 {
 	val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
 	return (val << 16) | (val >> 16);
+}
+
+
+char * zergBreed(int breedType)
+{
+	char * word = {'\0'};
+	switch(breedType)
+	{
+		case 0: 
+			word = "Overmind";
+			break;
+		case 1:
+			word = "Larva";
+			break;
+		case 2:
+			word = "Cerebrate";
+			break;
+		case 3:
+			word = "Overlord";
+			break;
+		case 4:
+			word = "Queen";
+			break;
+		case 5:
+			word = "Drone";
+			break;
+		case 6:
+			word = "Zergling";
+			break;
+		case 7:
+			word = "Lurker";
+			break;
+		case 8:
+			word  = "Broodling";
+			break;
+		case 9:
+			word = "Hydralisk";
+			break;
+		case 10:
+			word = "Guardian";
+			break;
+		case 11:
+			word = "Scourge";
+			break;
+		case 12:
+			word = "Ultralisk";
+			break;
+		case 13:
+			word = "Mutalisk";
+			break;
+		case 14:
+			word = "Defiler";
+			break;
+		case 15:
+			word = "Devourer";
+			break;
+	}
+	return(word);
 }
