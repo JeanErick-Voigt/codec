@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define NTOH2(x) (((x << 8) & 65280) + (x >> 8))
 #define NTOH3(x) ((int) x[0] << 16) | ((int) (x[1]) << 8) | ((int) (x[2]))
 #define NTOH4(x) ((int) x[0] << 24) | ((int) (x[1]) << 16) | ((int) (x[2]) <<  8) | ((int) (x[3]))
 
@@ -136,6 +137,8 @@ void main(int argc, char *argv[])
 //	printf("This is file pointer before message----> %ld\n", ftell(fp));
 	
 //	printf("This is zerg total 0 %d, zerg at 1 %d, zerg at 2 %d", zerg.totalLength[0], zerg.totalLength[1], zerg.totalLength[2]);
+	int zergSourceID = NTOH2(zerg.sourceZergID);
+	int zergDestinationID = NTOH2(zerg.destinationZergID);
 	int zergLength  = NTOH3(zerg.totalLength);
 	int sequence = 	NTOH4(zerg.sequenceID);
 	int messageLength = zergLength - 12;
@@ -155,7 +158,10 @@ void main(int argc, char *argv[])
 			fread(messagePayload, messageLength, 1, fp);
 			messagePayload[messageLength] = '\0';
 			printf("Sequence: %d\n", sequence);
-			printf("%s", messagePayload);
+			printf("From: %d\n", zergSourceID);
+			printf("To: %d\n", zergDestinationID);
+			//printf("Sequence: %d\n", sequence);
+			printf("%s\n", messagePayload);
 	}	 
 	fclose(fp);
 }
