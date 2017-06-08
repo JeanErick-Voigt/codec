@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stddef.h>
 
+#define NTOH2(x) (((x << 8) & 65280) + (x >> 8))
+#define NTOH3(x) ((int) x[0] << 16) | ((int) (x[1]) << 8) | ((int) (x[2]))
+#define NTOH4(x) ((int) x[0] << 24) | ((int) (x[1]) << 16) | ((int) (x[2]) <<  8) | ((int) (x[3]))
 
 long unsigned swap32(long unsigned val);
 
@@ -11,29 +15,24 @@ typedef struct PcapFileHeader {
 	uint16_t majorVersion; // Major_Version
 	uint16_t minorVersion;  // Minor_Version
 	uint32_t thisZone;  // GMT Offset
-	unsigned long timestampAcc;  // Accuracy Delta
-	unsigned long captureLength; // Maximum Length of a Capture
-	unsigned long linklayerType;   //Link Layer Type
-	uint64_t gmtoffsetToAccuracyDelta;
-	uint32_t maxLengthCapture;
+	uint32_t timestampAcc;  // Accuracy Delta
+	uint32_t captureLength; // Maximum Length of a Capture
+	uint32_t linklayerType;   //Link Layer Type
+
 
 } TOPHEADER; 
 
 typedef struct PcapPacketHeader {
-	unsigned long unixEpoch;
-	unsigned long usFromEpoch;
-	unsigned long lengthDataCaptured;
-	unsigned long untruncatedPacketLength;
-	uint64_t unixepochusfromEPOCH;
+	uint32_t unixEpoch;
+	uint32_t usFromEpoch;
+	uint32_t lengthDataCaptured;
+	uint32_t untruncatedPacketLength;
 } PACKETHEADER;
 
 typedef struct EthernetFrame {
-	unsigned long destMac1;
-	unsigned short destMac2;
-	unsigned long sMac1;
-	unsigned short sMac2;
-	unsigned short ethernetType;
-	// fseek for another 16 bytes  
+	uint16_t destMac[3];
+	uint16_t sMac[3];
+	uint16_t ethernetType; 
 	
 } ETHERNET;
 
@@ -41,7 +40,10 @@ typedef struct ipv4Header {
 	uint8_t versionAndIHL;
 	uint8_t dscpAndECN;
 	uint16_t iptotalLength;
-	uint64_t IdtoHeaderChecksum;
+	uint16_t Identification;
+	uint16_t flagstoFragmentoffset;
+	uint16_t ttltoProtocol;
+	uint16_t headerChecksum;
 	uint32_t sourceIP;
 	uint32_t destIP;
 } IPHEADER;
@@ -55,102 +57,74 @@ typedef struct udpHeader {
 
 typedef struct zergPacketHeader {
 	uint8_t versionToType;
-	uint16_t totalLength; 
-	uint8_t totalLength1;
-	uint16_t destinationZergID;
+	uint8_t totalLength[3];
 	uint16_t sourceZergID;
-	uint32_t sequenceID;
-	uint32_t payload;
+	uint16_t destinationZergID;
+	//uint32_t sequenceID;  try to do it in an array instead conversino
+	uint8_t sequenceID[4];
 }ZERG; 
 
 
-void main()
-{
-	//printf("lu", sizeof(TOPHEADER);
-	TOPHEADER fileHeader;
-	FILE *fp = fopen("/home/jvoigt/share/capstone_1/pcaps/hello.pcap", "r");
-	if (!fp)
-		printf("File, doesn't exist");
-	fread(&(fileHeader.magicNumber), 4, 1, fp);
-	printf("%x\n", fileHeader.magicNumber); // need to reverse endianness
-	
-	fread(&(fileHeader.majorVersion), 2, 1, fp);
-	printf("%x\n", fileHeader.majorVersion); // need to reverse endianess
 
-	fread(&(fileHeader.minorVersion), 2, 1, fp);
-	//printf("%x\n", fileHeader.minorVersion);
-	fread(&(fileHeader.gmtoffsetToAccuracyDelta), 8, 1, fp);
-	fread(&(fileHeader.maxLengthCapture), 4, 1, fp);
-	fread(&(fileHeader.linklayerType), 4, 1, fp);
-	printf("Link Layer Type -----> %lx\n", fileHeader.linklayerType);
-	
+void main(int argc, char *argv[])
+{
+	TOPHEADER fileHeader;
+	FILE *fp = fopen(argv[1], "r");
+	if (fp == NULL){
+		printf("file does not exist");
+		exit(1);
+	}
+	fread(&fileHeader, sizeof(fileHeader), 1, fp);
+
 	PACKETHEADER packet;
-	fread(&(packet.unixepochusfromEPOCH), 8, 1, fp);
-	fread(&(packet.lengthDataCaptured), 4, 1, fp);
-	printf("Length Data captured ---- > %lx\n", packet.lengthDataCaptured);
-	fread(&(packet.untruncatedPacketLength), 4, 1, fp); 
-	
+	fread(&packet, sizeof(packet), 1, fp);
+
+
 	ETHERNET ether;
-	fread(&(ether.destMac1), 4, 1, fp);
-	fread(&(ether.destMac2), 2, 1, fp);
-	fread(&(ether.sMac1), 2, 1, fp);
-	fread(&(ether.sMac2), 4, 1, fp);
-	fread(&(ether.ethernetType), 2, 1, fp);
-	printf("Ethernet Type -----> %x\n", ether.ethernetType);
-//	fseek(fp ,2, SEEK_CUR);
+	fread(&ether, sizeof(ether), 1, fp);
 	int len = ftell(fp);
-	printf("place in code ---> %d", len);
 
 	IPHEADER ip;
-	int version[4];
-	int ihl[4];
+	int version;
+	int ihl;
 	uint8_t mask = 1;
-	fread(&(ip.versionAndIHL), 1, 1, fp);
-	for(int i = 0; i < 8; i++){
-		if (i < 4){
-			ihl[i] = ip.versionAndIHL & mask;
-			mask <<= 1;
-		}else{
-			version[i-4] = ip.versionAndIHL & mask;
-			mask <<= 1;
-		}
-	}
-	printf("This is version\n");
-	for(int i = 0; i < 4; i++){
-		printf("%d", version[i]);
-	}
-	putchar('\n');
-	printf("Ip version and IHL ----> %x\n", ip.versionAndIHL);
-	fread(&(ip.dscpAndECN), 1, 1, fp);
-	fread(&(ip.iptotalLength), 2, 1, fp);
-	printf("Ip total length ----> %x\n", ip.iptotalLength);
-	fread(&(ip.IdtoHeaderChecksum), 8, 1, fp);
-	fread(&(ip.sourceIP), 4, 1, fp);
-	fread(&(ip.destIP), 4, 1, fp);
+	fread(&ip, sizeof(ip), 1, fp);
+	ihl = ip.versionAndIHL & 0x0F;
+	version =  ip.versionAndIHL >> 4;
 
 	UDP udp;
-	fread(&(udp.sourcePort), 2, 1, fp);
-	fread(&(udp.destPort), 2, 1, fp);
-	printf("UDP dest port ----> %x\n", udp.destPort);
-	fread(&(udp.Length), 2, 1, fp);
-	printf("udp length -----> %x\n", udp.Length);
-	fread(&(udp.checksum), 2, 1, fp);
+	fread(&udp, sizeof(udp), 1, fp);
 
 	ZERG zerg;
-	fread(&(zerg.versionToType), 1, 1, fp);
-	printf("Version and type\n");
-	printf("%x\n", zerg.versionToType);
-	fread(&(zerg.totalLength), 2, 1, fp);
-	fread(&(zerg.totalLength1), 1, 1, fp);
-	printf("Total length: ");
-	printf("%x\n", zerg.totalLength1);
-	fread(&(zerg.sourceZergID), 2, 1, fp);
-	printf("%x\n", zerg.sourceZergID);
-	fread(&(zerg.destinationZergID), 2, 1, fp);
-	printf("%x\n", zerg.destinationZergID);
-	fread(&(zerg.sequenceID), 4, 1, fp);
-	fread(&(zerg.payload), 4, 1, fp);
-	printf("%x\n", zerg.payload);
+	fread(&zerg, sizeof(zerg), 1, fp);
+
+
+	int zergSourceID = NTOH2(zerg.sourceZergID);
+	int zergDestinationID = NTOH2(zerg.destinationZergID);
+	int zergLength  = NTOH3(zerg.totalLength);
+	int sequence = 	NTOH4(zerg.sequenceID);
+	int messageLength = zergLength - 12;
+	
+	int type = zerg.versionToType & 0xF;  // This is type of message
+	int zergVersion = zerg.versionToType >> 4;  // This is version
+	printf("Version: %d\n", zergVersion);
+
+	//if message type = 0  it is a message and can do this
+	// This is the message payload branch
+	switch(type)
+	{
+		case 0:
+			;
+			char * messagePayload; 
+			messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
+			fread(messagePayload, messageLength, 1, fp);
+			messagePayload[messageLength] = '\0';
+			printf("Sequence: %d\n", sequence);
+			printf("From: %d\n", zergSourceID);
+			printf("To: %d\n", zergDestinationID);
+			//printf("Sequence: %d\n", sequence);
+			printf("%s\n", messagePayload);
+	}	 
 	fclose(fp);
 }
 
