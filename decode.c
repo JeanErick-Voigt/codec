@@ -10,6 +10,7 @@
 
 char * zergBreed(int breedType);
 long unsigned swap32(long unsigned val);
+char * commandOption(int instruction);
 
 typedef struct PcapFileHeader {
 	uint32_t magicNumber;  // File_Type_ID
@@ -71,7 +72,11 @@ typedef struct statusPayload {
 	uint8_t maxHitPoints[3];
 	uint8_t statusType;
 	uint8_t speed[4];
-}STATUSPAYLOAD; 
+}STATUSPAYLOAD;
+
+typedef struct commandPayload {
+	uint16_t commandField;
+} COMMAND;
 
 
 
@@ -130,6 +135,14 @@ void main(int argc, char *argv[])
 	char * messagePayload;
 	messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
 	messagePayload[messageLength] = '\0';
+	
+	COMMAND command;
+	uint16_t parameter1;
+	uint8_t parameter2[4];
+
+//	parameter1 = NTOH2(parameter1);
+//	parameter2 = NTOH4(parameter2);
+//	int space = 2;
 	switch(type)
 	{
 		case 0:  //regular payload
@@ -157,7 +170,42 @@ void main(int argc, char *argv[])
 			printf("Name    :%s\n",  breed);
 			printf("Armor   :%d\n", status.armor);
 			printf("Speed   :%x\n", speed);
+			break;
 			//printf("name is: :%s", messagePayload);
+		case 2: //command payload
+			;
+			fread(&command, sizeof(command), 1, fp);
+			int commandNum = NTOH2(command.commandField);
+			char * commandWord = commandOption(commandNum);
+			printf("%s", commandWord);
+			if(commandNum %2 == 0){
+			// Command payload only 2 bytes instead of 8
+				;
+
+			}else{
+				fread(&parameter1, sizeof(parameter1), 1, fp);
+				fread(&parameter2, sizeof(parameter2), 1, fp);
+				parameter1 = NTOH2(parameter1);
+				int nParameter2 = NTOH4(parameter2);
+				if(commandNum == 1){  //GOTO COMMAND
+					printf("   %x  %d\n",  nParameter2, parameter1);
+				}
+				else if (commandNum == 3){ //RESERVED
+					; // do nothing
+				}
+				else if (commandNum == 5){  
+					if(parameter1 != 0){ //SETGROUP
+						//True statement and should be ADD OR SUBTRACT
+						printf("   %d ADD\n", nParameter2);
+					}else{
+						printf("   %x SUBTRACT\n", nParameter2);
+					}
+				
+				}else{  //REPEAT COMMAND
+					printf("   %d\n", nParameter2);
+				}
+			}
+			break;
 	}
 	//free(messagePayload);
 	fclose(fp);
@@ -225,6 +273,38 @@ char * zergBreed(int breedType)
 			break;
 		case 15:
 			word = "Devourer";
+			break;
+	}
+	return(word);
+}
+
+char * commandOption(int instruction){
+	char * word = {'\0'};
+	switch(instruction)
+	{
+		case 0:
+			word = "GET_STATUS";
+			break;
+		case 1:
+			word = "GOTO";
+			break;
+		case 2:
+			word = "GET_GPS";
+			break;
+		case 3:
+			word = "RESERVED";
+			break;
+		case 4:
+			word = "RETURN";
+			break;
+		case 5:
+			word = "SET_GROUP";
+			break;
+		case 6:
+			word = "STOP";
+			break;
+		case 7:
+			word = "REPEAT";
 			break;
 	}
 	return(word);
