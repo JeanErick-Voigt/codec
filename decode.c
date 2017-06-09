@@ -12,6 +12,7 @@ char * zergBreed(int breedType);
 long unsigned swap32(long unsigned val);
 char * commandOption(int instruction);
 uint64_t ntoh64(uint8_t number[8]);
+int fileSize(FILE *fp);
 
 typedef struct PcapFileHeader {
 	uint32_t magicNumber;  // File_Type_ID
@@ -92,153 +93,163 @@ typedef struct gpsDataPayload{
 
 void main(int argc, char *argv[])
 {
+	
 	TOPHEADER fileHeader;
 	FILE *fp = fopen(argv[1], "r");
 	if (fp == NULL){
 		printf("file does not exist\n");
 		exit(1);
 	}
-	fread(&fileHeader, sizeof(fileHeader), 1, fp);
+	// CHECK file size before while loop, function automatically rewinds file
+	int fullSize = fileSize(fp); 
+	//int *currentSize = ftell(fp); 	
+	printf("This is file size %d\n", fullSize);
+//Start while loop here
+//Indent all the information below this line for while loop
+	while(ftell(fp) < fullSize){
+		
+		fread(&fileHeader, sizeof(fileHeader), 1, fp);
 
-	PACKETHEADER packet;
-	fread(&packet, sizeof(packet), 1, fp);
-
-
-	ETHERNET ether;
-	fread(&ether, sizeof(ether), 1, fp);
-	int len = ftell(fp);
-
-	IPHEADER ip;
-	int version;
-	int ihl;
-	uint8_t mask = 1;
-	fread(&ip, sizeof(ip), 1, fp);
-	ihl = ip.versionAndIHL & 0x0F;
-	version =  ip.versionAndIHL >> 4;
-	int ipLength = NTOH2(ip.iptotalLength);
-
-	UDP udp;
-	fread(&udp, sizeof(udp), 1, fp);
-
-	ZERG zerg;
-	fread(&zerg, sizeof(zerg), 1, fp);
+		PACKETHEADER packet;
+		fread(&packet, sizeof(packet), 1, fp);
 
 
-	int zergSourceID = NTOH2(zerg.sourceZergID);
-	int zergDestinationID = NTOH2(zerg.destinationZergID);
-	int zergLength  = NTOH3(zerg.totalLength);
-	int sequence = 	NTOH4(zerg.sequenceID);
-	int messageLength = zergLength - 12;
-	printf("Message length of zerg message %d\n", messageLength);
-	int type = zerg.versionToType & 0xF;  // This is type of message
-	int zergVersion = zerg.versionToType >> 4;  // This is version
-	printf("Version: %d\n", zergVersion);
+		ETHERNET ether;
+		fread(&ether, sizeof(ether), 1, fp);
+		int len = ftell(fp);
 
-	STATUSPAYLOAD status;
-	//if message type = 0  it is a message and can do this
-	// This is the message payload branch
-	printf("Sequence: %x\n", sequence);
-	printf("From: %d\n", zergSourceID);
-	printf("To: %d\n", zergDestinationID);
-	printf("Ip total length %d\n", ipLength);
-	//char * payloadLength = (char*) malloc((
-	char * messagePayload;
-	messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
-	messagePayload[messageLength] = '\0';
+		IPHEADER ip;
+		int version;
+		int ihl;
+		uint8_t mask = 1;
+		fread(&ip, sizeof(ip), 1, fp);
+		ihl = ip.versionAndIHL & 0x0F;
+		version =  ip.versionAndIHL >> 4;
+		int ipLength = NTOH2(ip.iptotalLength);
+
+		UDP udp;
+		fread(&udp, sizeof(udp), 1, fp);
+
+		ZERG zerg;
+		fread(&zerg, sizeof(zerg), 1, fp);
+
+
+		int zergSourceID = NTOH2(zerg.sourceZergID);
+		int zergDestinationID = NTOH2(zerg.destinationZergID);
+		int zergLength  = NTOH3(zerg.totalLength);
+		int sequence = 	NTOH4(zerg.sequenceID);
+		int messageLength = zergLength - 12;
+		printf("Message length of zerg message %d\n", messageLength);
+		int type = zerg.versionToType & 0xF;  // This is type of message
+		int zergVersion = zerg.versionToType >> 4;  // This is version
+		printf("Version: %d\n", zergVersion);
+
+		STATUSPAYLOAD status;
+		//if message type = 0  it is a message and can do this
+		// This is the message payload branch
+		printf("Sequence: %x\n", sequence);
+		printf("From: %d\n", zergSourceID);
+		printf("To: %d\n", zergDestinationID);
+		printf("Ip total length %d\n", ipLength);
+		//char * payloadLength = (char*) malloc((
+		char * messagePayload;
+		messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
+		messagePayload[messageLength] = '\0';
 	
-	COMMAND command;
-	uint16_t parameter1;
-	uint8_t parameter2[4];
+		COMMAND command;
+		uint16_t parameter1;
+		uint8_t parameter2[4];
 	
-	GPS gpsDataPayload;
+		GPS gpsDataPayload;
 
-//	parameter1 = NTOH2(parameter1);
-//	parameter2 = NTOH4(parameter2);
-//	int space = 2;
-	switch(type)
-	{
-		case 0:  //regular payload
-			;
-			//char * messagePayload; 
-			//messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
-			fread(messagePayload, messageLength, 1, fp);
-			//messagePayload[messageLength] = '\0';
-			//printf("From: %d\n", zergSourceID);
-			//printf("To: %d\n", zergDestinationID);
-			printf("%s\n", messagePayload);
-			free(messagePayload);
-			break;
-		case 1:   //status payload
-			;
-			fread(&status, sizeof(status), 1, fp);
-			fread(messagePayload, messageLength, 1, fp);
-			printf("Status Type is %d\n", status.statusType);
-			int statusType = status.statusType; 
-			int speed = NTOH4(status.speed);
-			int hitPoints = NTOH3(status.hitPoints);
-			int maxhp = NTOH3(status.maxHitPoints);
-			printf("Name    :%s\n", messagePayload); 
-			printf("Hp      :%d/%d\n", hitPoints, maxhp);
-			char * breed = zergBreed(statusType);
-			printf("Name    :%s\n",  breed);
-			printf("Armor   :%d\n", status.armor);
-			printf("Speed   :%x\n", speed);
-			break;
-			//printf("name is: :%s", messagePayload);
-		case 2: //command payload
-			;
-			fread(&command, sizeof(command), 1, fp);
-			int commandNum = NTOH2(command.commandField);
-			char * commandWord = commandOption(commandNum);
-			printf("%s", commandWord);
-			if(commandNum %2 == 0){
-			// Command payload only 2 bytes instead of 8
+	//	parameter1 = NTOH2(parameter1);
+	//	parameter2 = NTOH4(parameter2);
+	//	int space = 2;
+		switch(type)
+		{
+			case 0:  //regular payload
 				;
+				//char * messagePayload; 
+				//messagePayload = (char*) malloc((messageLength + 1) * sizeof(char));
+				fread(messagePayload, messageLength, 1, fp);
+				//messagePayload[messageLength] = '\0';
+				//printf("From: %d\n", zergSourceID);
+				//printf("To: %d\n", zergDestinationID);
+				printf("%s\n", messagePayload);
+				free(messagePayload);
+				break;
+			case 1:   //status payload
+				;
+				fread(&status, sizeof(status), 1, fp);
+				fread(messagePayload, messageLength, 1, fp);
+				printf("Status Type is %d\n", status.statusType);
+				int statusType = status.statusType; 
+				int speed = NTOH4(status.speed);
+				int hitPoints = NTOH3(status.hitPoints);
+				int maxhp = NTOH3(status.maxHitPoints);
+				printf("Name    :%s\n", messagePayload); 
+				printf("Hp      :%d/%d\n", hitPoints, maxhp);
+				char * breed = zergBreed(statusType);
+				printf("Name    :%s\n",  breed);
+				printf("Armor   :%d\n", status.armor);
+				printf("Speed   :%x\n", speed);
+				break;
+				//printf("name is: :%s", messagePayload);
+			case 2: //command payload
+				;
+				fread(&command, sizeof(command), 1, fp);
+				int commandNum = NTOH2(command.commandField);
+				char * commandWord = commandOption(commandNum);
+				printf("%s", commandWord);
+				if(commandNum %2 == 0){
+				// Command payload only 2 bytes instead of 8
+					;
 
-			}else{
-				fread(&parameter1, sizeof(parameter1), 1, fp);
-				fread(&parameter2, sizeof(parameter2), 1, fp);
-				parameter1 = NTOH2(parameter1);
-				int nParameter2 = NTOH4(parameter2);
-				if(commandNum == 1){  //GOTO COMMAND
-					printf("   %x  %d\n",  nParameter2, parameter1);
-				}
-				else if (commandNum == 3){ //RESERVED
-					; // do nothing
-				}
-				else if (commandNum == 5){  
-					if(parameter1 != 0){ //SETGROUP
-						//True statement and should be ADD OR SUBTRACT
-						printf("   %d ADD\n", nParameter2);
-					}else{
-						printf("   %x SUBTRACT\n", nParameter2);
+				}else{
+					fread(&parameter1, sizeof(parameter1), 1, fp);
+					fread(&parameter2, sizeof(parameter2), 1, fp);
+					parameter1 = NTOH2(parameter1);
+					int nParameter2 = NTOH4(parameter2);
+					if(commandNum == 1){  //GOTO COMMAND
+						printf("   %x  %d\n",  nParameter2, parameter1);
 					}
+					else if (commandNum == 3){ //RESERVED
+						; // do nothing
+					}
+					else if (commandNum == 5){  
+						if(parameter1 != 0){ //SETGROUP
+							//True statement and should be ADD OR SUBTRACT
+							printf("   %d ADD\n", nParameter2);
+						}else{
+							printf("   %x SUBTRACT\n", nParameter2);
+						}
 				
-				}else{  //REPEAT COMMAND
-					printf("   %d\n", nParameter2);
+					}else{  //REPEAT COMMAND
+						printf("   %d\n", nParameter2);
+					}
 				}
-			}
-			break;
+				break;
 
-		case 3:
-			fread(&gpsDataPayload, sizeof(gpsDataPayload), 1, fp);
-			uint64_t lat = ntoh64(gpsDataPayload.latitude);
-			uint64_t longitude = ntoh64(gpsDataPayload.longitude);
-			uint32_t altitude = NTOH4(gpsDataPayload.altitude);
-			uint32_t bearing = NTOH4(gpsDataPayload.bearing);
-			uint32_t gpsSpeed = NTOH4(gpsDataPayload.speed);
-			uint32_t accuracy = NTOH4(gpsDataPayload.accuracy);
-			printf("Latitude   :  %lx\n", lat);
-			printf("Longitude  :  %lx\n", longitude);
-			printf("Altitude   :  %x\n", altitude);
-			printf("Bearing    :  %x\n", bearing);
-			printf("Speed      :  %x\n", gpsSpeed);
-			printf("Accuracy    :  %x\n", accuracy);
-			break;
+			case 3:
+				fread(&gpsDataPayload, sizeof(gpsDataPayload), 1, fp);
+				uint64_t lat = ntoh64(gpsDataPayload.latitude);
+				uint64_t longitude = ntoh64(gpsDataPayload.longitude);
+				uint32_t altitude = NTOH4(gpsDataPayload.altitude);
+				uint32_t bearing = NTOH4(gpsDataPayload.bearing);
+				uint32_t gpsSpeed = NTOH4(gpsDataPayload.speed);
+				uint32_t accuracy = NTOH4(gpsDataPayload.accuracy);
+				printf("Latitude   :  %lx\n", lat);
+				printf("Longitude  :  %lx\n", longitude);
+				printf("Altitude   :  %x\n", altitude);
+				printf("Bearing    :  %x\n", bearing);
+				printf("Speed      :  %x\n", gpsSpeed);
+				printf("Accuracy    :  %x\n", accuracy);
+				break;
+		}
+		
+		//fclose(fp);
 	}
-	//free(messagePayload);
 	fclose(fp);
-	//free(messagePayload)
 }
 
 
@@ -347,4 +358,12 @@ uint64_t ntoh64(uint8_t number[8])
 				 | ((uint64_t) number[7]));
 
 	return(newNumber); 
+}
+
+int fileSize(FILE *fp)
+{
+	fseek(fp, 0, SEEK_END);
+	int size = ftell(fp);
+	rewind(fp);
+	return(size);
 }
