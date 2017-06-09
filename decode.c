@@ -11,6 +11,7 @@
 char * zergBreed(int breedType);
 long unsigned swap32(long unsigned val);
 char * commandOption(int instruction);
+uint64_t ntoh64(uint8_t number[8]);
 
 typedef struct PcapFileHeader {
 	uint32_t magicNumber;  // File_Type_ID
@@ -78,6 +79,15 @@ typedef struct commandPayload {
 	uint16_t commandField;
 } COMMAND;
 
+typedef struct gpsDataPayload{
+	uint8_t longitude[8];
+	uint8_t latitude[8];
+	uint8_t altitude[4];
+	uint8_t bearing[4];
+	uint8_t speed[4];
+	uint8_t accuracy[4];
+}GPS;
+
 
 
 void main(int argc, char *argv[])
@@ -127,7 +137,7 @@ void main(int argc, char *argv[])
 	STATUSPAYLOAD status;
 	//if message type = 0  it is a message and can do this
 	// This is the message payload branch
-	printf("Sequence: %d\n", sequence);
+	printf("Sequence: %x\n", sequence);
 	printf("From: %d\n", zergSourceID);
 	printf("To: %d\n", zergDestinationID);
 	printf("Ip total length %d\n", ipLength);
@@ -139,6 +149,8 @@ void main(int argc, char *argv[])
 	COMMAND command;
 	uint16_t parameter1;
 	uint8_t parameter2[4];
+	
+	GPS gpsDataPayload;
 
 //	parameter1 = NTOH2(parameter1);
 //	parameter2 = NTOH4(parameter2);
@@ -154,6 +166,7 @@ void main(int argc, char *argv[])
 			//printf("From: %d\n", zergSourceID);
 			//printf("To: %d\n", zergDestinationID);
 			printf("%s\n", messagePayload);
+			free(messagePayload);
 			break;
 		case 1:   //status payload
 			;
@@ -205,6 +218,22 @@ void main(int argc, char *argv[])
 					printf("   %d\n", nParameter2);
 				}
 			}
+			break;
+
+		case 3:
+			fread(&gpsDataPayload, sizeof(gpsDataPayload), 1, fp);
+			uint64_t lat = ntoh64(gpsDataPayload.latitude);
+			uint64_t longitude = ntoh64(gpsDataPayload.longitude);
+			uint32_t altitude = NTOH4(gpsDataPayload.altitude);
+			uint32_t bearing = NTOH4(gpsDataPayload.bearing);
+			uint32_t gpsSpeed = NTOH4(gpsDataPayload.speed);
+			uint32_t accuracy = NTOH4(gpsDataPayload.accuracy);
+			printf("Latitude   :  %lx\n", lat);
+			printf("Longitude  :  %lx\n", longitude);
+			printf("Altitude   :  %x\n", altitude);
+			printf("Bearing    :  %x\n", bearing);
+			printf("Speed      :  %x\n", gpsSpeed);
+			printf("Accuracy    :  %x\n", accuracy);
 			break;
 	}
 	//free(messagePayload);
@@ -308,4 +337,14 @@ char * commandOption(int instruction){
 			break;
 	}
 	return(word);
+}
+
+
+uint64_t ntoh64(uint8_t number[8])
+{
+	uint64_t newNumber = (((uint64_t) number[0] << 56) | ((uint64_t) number[1] << 48) | ((uint64_t) number[2] << 40) | ((uint64_t) number[3] << 32)
+				 | ((uint64_t) number[4] << 24) | ((uint64_t) number[5] << 16) | ((uint64_t) number[6] << 8) 
+				 | ((uint64_t) number[7]));
+
+	return(newNumber); 
 }
