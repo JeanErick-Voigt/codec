@@ -12,13 +12,13 @@ int main(int argc, char *argv[])
 	printf("this is file pointer name %s\n", argv[1]);
 	int count = 4;
 	char pcapArray[5][50];
-	char line[51];
+	char line[100];
 	char *word[10];
 	int number[5];
 	char * p;
 	int x = 0;
 	for (int i = 0; i < 4; i++){
-		fgets(line, 51, fp);
+		fgets(line, 100, fp);
 		//line[strlen(line) - 1] = '\0';
 		printf("this is line %s", line);
 		strcpy(pcapArray[i], line);
@@ -36,8 +36,18 @@ int main(int argc, char *argv[])
 		if(strcmp(word[0], "Version")){
 			printf("True");
 		}
+
+		
 		//printf("This is array line %s\n", pcapArray[i]);
 		//printf("This is word %s\n", word[x]);
 		//printf("THis is number %d\n", number[i]);
 	}
+	fgets(line, 100, fp);
+	printf("Line string --> %s", line);
+	char key[100];
+	char value[100];
+	sscanf(line, "%s : %[^\n]s", key, value);
+	printf("key value pair '%s'  '%s'", key, value);	
+	
+	//printf("This is character c %c", c);
 }
