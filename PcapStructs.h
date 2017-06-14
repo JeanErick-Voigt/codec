@@ -1,4 +1,4 @@
-
+#include <stdint.h>
 
 
 typedef struct PcapFileHeader {
