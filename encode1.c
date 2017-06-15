@@ -10,11 +10,15 @@ int ZergType(char * name);
 int main(int argc, char *argv[])
 {
 	FILE *fp = fopen(argv[1], "r");
-	FILE *fp1 = fopen("sample.pcap", "w");
-	//if (fp == NULL){
-	//	printf("file does not exist\n");
-	//	exit(1);
-	//}
+	FILE *fp1 = fopen(argv[2], "w");
+	if(argc > 3){
+		printf("To many arguments");
+		exit(1);
+	}
+	if (fp == NULL){
+		printf("file does not exist\n");
+		exit(1);
+	}
 	printf("this is file pointer name %s\n", argv[1]);
 	int count = 4;
 	char pcapArray[5][50];
@@ -217,14 +221,15 @@ int main(int argc, char *argv[])
 			sscanf(line, "%s : %[^\n]s\n", garbage, buffer);
 			printf("This is buffer-----> %s \n", buffer);
 			
-			if(strcmp(buffer, "Zerng") == 0){
-				printf("True\n");
-			}else{
-				printf("False\n");
-			}	
+			//if(strcmp(buffer, "Zerng") == 0){
+			//	printf("True\n");
+			//}else{
+			//	printf("False\n");
+			//}	
 			printf("This is the zerg type buffer %d\n", ZergType(buffer));
 			status.statusType = ZergType(buffer);
 			printf("This is statusType %x\n", status.statusType);
+			fwrite(&status, 1, sizeof(status), fp1);
 			break;
 			
 		//case 0x12:
