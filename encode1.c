@@ -4,6 +4,9 @@
 #include "PcapStructs.h"
 
 #define HTON2(x) ((x >> 8) | (x << 8))
+
+int ZergType(char * name);
+
 int main(int argc, char *argv[])
 {
 	FILE *fp = fopen(argv[1], "r");
@@ -172,6 +175,7 @@ int main(int argc, char *argv[])
 	// switch case statement for different payload types
 
 	STATUSPAYLOAD status;
+	printf("This is the type %x\n", type);
 	switch(type)
 	{
 		case 0x10:
@@ -205,10 +209,23 @@ int main(int argc, char *argv[])
 			uint8_t mhp2 = ((atoi(buffer) & 0xFF00) >> 8);
 			uint8_t mhp3 = (atoi(buffer) & 0xFF);
 			status.maxHitPoints[0] = mhp1;
-			status.mahHitPoints[1] = mhp2;
+			status.maxHitPoints[1] = mhp2;
 			status.maxHitPoints[2] = mhp3;
-			sscanf(line, "%s : [^\n]s", garbage, buffer);
+			fgets(line, 100, fp);
+			//char * buffer2;
+			printf("This is line %s", line);
+			sscanf(line, "%s : %[^\n]s\n", garbage, buffer);
+			printf("This is buffer-----> %s \n", buffer);
 			
+			if(strcmp(buffer, "Zerng") == 0){
+				printf("True\n");
+			}else{
+				printf("False\n");
+			}	
+			printf("This is the zerg type buffer %d\n", ZergType(buffer));
+			status.statusType = ZergType(buffer);
+			printf("This is statusType %x\n", status.statusType);
+			break;
 			
 		//case 0x12:
 	
@@ -220,71 +237,52 @@ int main(int argc, char *argv[])
 int ZergType(char * name)
 {
 	int type = 0;
-	switch(name)
-	{
-		case (name == Overmind):
-			type = 0;
-			break;
-
-		case Larva:
-			type = 1;
-			break;
-
-		case Cerebrate:
-			type = 2;
-			break;
-
-		case Overlord:
-			type = 3;
-			break;
-
-		case Queen:
-			type = 4;
-			break;
-
-		case Drone:
-			type = 5;
-			break;
-
-		case Zergling:
-			type = 6;
-			break;
-
-		case Lurker:
-			type = 7;
-			break;
-
-		case Broodling:
-			type = 8;
-			break;
-
-		case Hydralisk:
-			type = 9;
-			break;
-
-		case Guardian:
-			type = 10;
-			break;
-
-		case Scourge:
-			type = 11;
-			break;
-
-		case Ultralisk:
-			type = 12;
-			break;
-
-		case Mutalisk:
-			type = 13;
-			break;
-		
-		case Defiler:
-			type = 14;
-			break:
-
-		case Devourer:
-			type = 15;
-			break;
+	if(strcmp(name, "Overmind") == 0){
+		type = 0;
+	}
+	else if(strcmp(name, "Larva") == 0){
+		type = 1;
+	}
+	else if(strcmp(name, "Cerebrate") == 0){
+		type = 2;
+	}
+	else if(strcmp(name, "Overlord") == 0){
+		type = 3;
+	}
+	else if(strcmp(name, "Queen") == 0){
+		type = 4;
+	}
+	else if(strcmp(name, "Drone") == 0){
+		type = 5;
+	}
+	else if(strcmp(name, "Zergling") == 0){
+		type = 6;
+	}
+	else if(strcmp(name, "Lurker") == 0){
+		type = 7;
+	}
+	else if(strcmp(name, "Broodling") == 0){
+		type = 8;
+	}
+	else if(strcmp(name, "Hydralisk") == 0){
+		type = 9;
+	}
+	else if(strcmp(name, "Guardian") == 0){
+		type = 10;
+	}
+	else if(strcmp(name, "Scourge") == 0){
+		type = 11;
+	}
+	else if(strcmp(name, "Ultralisk") == 0){
+		type = 12;
+	}
+	else if(strcmp(name, "Mutalisk") == 0){
+		type = 13;
+	}
+	else if(strcmp(name, "Defiler") == 0){
+		type = 14;
+	}else{
+		type = 15;
 	}
 	return(type);
 }
