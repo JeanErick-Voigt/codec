@@ -12,6 +12,10 @@ union Data{
 	float f;
 };
 
+union Data64{
+	double float f;
+	int i;
+};
 
 int main(int argc, char *argv[])
 {
@@ -196,6 +200,7 @@ int main(int argc, char *argv[])
 	STATUSPAYLOAD status;
 	printf("This is the type %x\n", type);
 	union Data FloatToBin;  //union declaration
+	union Data64 data64;
 	char buffer1[20] = {'\0'};
 	float bufferF = 0.0;
 	int bufferA, bufferB;
@@ -235,8 +240,8 @@ int main(int argc, char *argv[])
 			zergHeader.totalLength[0] = tLen1;
 			zergHeader.totalLength[1] = tLen2;
 			zergHeader.totalLength[2] = tLen3;
-			fgets(line, 100, fp); //hitpoints fgest
-			sscanf(line, "%s : %d/%d", garbage, &bufferA, &bufferB);
+			//fgets(line, 100, fp); //hitpoints fgest
+			sscanf(fifthLine, "%s : %d/%d", garbage, &bufferA, &bufferB);
 			printf("This is the float buffer to be changed %d\n", bufferB);
 			uint8_t hp1 = (bufferA & 0xFF0000) >> 16;
 			uint8_t hp2 = (bufferA & 0xFF00) >> 8;
@@ -390,8 +395,8 @@ int main(int argc, char *argv[])
 				zergHeader.totalLength[0] = tLen1;
 				zergHeader.totalLength[1] = tLen2;
 				zergHeader.totalLength[2] = tLen3;
-				fgets(line, 100, fp);
-				sscanf(line, "%s %f %s", garbage, &bufferF, buffer);
+				//fgets(line, 100, fp);
+				sscanf(fifthLine, "%s %f %s", garbage, &bufferF, buffer);
 				if(strcmp(buffer, "ADD") == 0){
 					bufferUint = 1;
 				}else{
@@ -435,8 +440,8 @@ int main(int argc, char *argv[])
 				zergHeader.totalLength[0] = tLen1;
 				zergHeader.totalLength[1] = tLen2;
 				zergHeader.totalLength[2] = tLen3;
-				fgets(line, 100, fp);
-				sscanf(line, "%s %f", garbage, &bufferF);
+				//fgets(line, 100, fp);
+				sscanf(fifthLine, "%s %f", garbage, &bufferF);
 				FloatToBin.f = bufferF;
 				param1 = (FloatToBin.i & 0xFF000000) >> 24;
 				param2 = (FloatToBin.i & 0xFF0000) >> 16;
@@ -454,7 +459,36 @@ int main(int argc, char *argv[])
 				
 			}
 			break;
-		//case 0x13:
+		case 0x13:
+				;
+				uint64_t buffer64;
+				commandNum = 8;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 8;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				parameter1 = 0;
+				char latitude[30];
+				sscanf(fifthLine, "%s %f", garbage, latitude);
+				printf("The latitude should read by --->latitude %s\n", latitude); 
+				buffer64 = atof(latitude);
+				FloatToBin.f = buffer64
+				param1 = (FloatToBin.i & 0xFF000000) >> 24;
+				param2 = (FloatToBin.i & 0xFF0000) >> 16;
+				param3 = (FloatToBin.i & 0xFF00) >> 8;
+				param4 = (FloatToBin.i & 0xFF);
+				parameter2[0] = param1;
+				parameter2[1] = param2;
+				parameter2[2] = param3;
+				parameter2[3] = param4;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+				fwrite(&parameter1, 1, sizeof(parameter1), fp1);
+				fwrite(&parameter2, 1, sizeof(parameter2), fp1);
 	}
 }
 

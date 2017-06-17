@@ -12,6 +12,7 @@ union Data{
 	float f;
 };
 
+
 int main(int argc, char *argv[])
 {
 	FILE *fp = fopen(argv[1], "r");
@@ -81,6 +82,7 @@ int main(int argc, char *argv[])
 	//printf("%d\n", strlen(key));
 	//printf("%d", strlen("Latitude"));
 	// type of payload
+	//printf("This is value ---> %s\n", value);
 	printf("This is key[0] %c\n", key[0]);
 	if(key[0] == 'M'){
 		type = 0x10;
@@ -196,6 +198,11 @@ int main(int argc, char *argv[])
 	union Data FloatToBin;  //union declaration
 	char buffer1[20] = {'\0'};
 	float bufferF = 0.0;
+	int bufferA, bufferB;
+	uint16_t bufferUint;
+	COMMAND	command;
+	uint8_t parameter2[4]; 
+	uint16_t parameter1;
 	switch(type)
 	{
 		case 0x10:
@@ -216,7 +223,6 @@ int main(int argc, char *argv[])
 			break;
 		case 0x11:
 			;
-			int bufferA, bufferB;
 			//printf("This is value from key value pair %d\n", strlen(value));
 			StatusPayloadLength = strlen(value) + 12;
 			totalLength = StatusPayloadLength + 12;
@@ -286,8 +292,168 @@ int main(int argc, char *argv[])
 			fwrite(messagePayload, 1, strlen(value), fp1);
 			break;
 			
-		//case 0x12:
-	
+		case 0x12:
+			;
+			uint8_t param1, param2, param3, param4;
+			uint16_t commandNum = 0;
+			if(strcmp(key, "GET_STATUS") == 0){  //commandnum = 0
+				printf("True");
+				commandNum = 0;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 2;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1); 
+				
+				
+			}
+			else if(strcmp(key, "GOTO") == 0){  // commandNum = 1
+				commandNum = 1;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 8;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				//fgets(line, 100, fp);
+				sscanf(line, "%s %lf %d", garbage, bufferF, bufferUint );
+				FloatToBin.f = bufferF;
+				param1 = (FloatToBin.i & 0xFF000000) >> 24;
+				param2 = (FloatToBin.i & 0xFF0000) >> 16;
+				param3 = (FloatToBin.i & 0xFF00) >> 8;
+				param4 = (FloatToBin.i & 0xFF);
+				parameter2[0] = param1;
+				parameter2[1] = param2;
+				parameter2[2] = param3;
+				parameter2[3] = param4;
+				parameter1 = HTON2(bufferUint);
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+				fwrite(&parameter1, 1, sizeof(parameter1), fp1);
+				fwrite(&parameter2, 1, sizeof(parameter2), fp1);
+			}
+			else if(strcmp(key, "GET_GPS") == 0){ // commandNum = 2
+				commandNum = 2;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 2;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+				
+			}
+			else if(strcmp(key, "RESERVED") == 0){  // commandNum = 3
+				commandNum = 3;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 8;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+			}
+			else if(strcmp(key, "RETURN") == 0){  //commandNum = 4
+				commandNum = 4;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 2;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+
+			}
+			else if(strcmp(key, "SET_GROUP") == 0){  // commandNum = 5
+				commandNum = 5;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 8;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fgets(line, 100, fp);
+				sscanf(line, "%s %lf %s", garbage, bufferF, buffer);
+				if(strcmp(buffer, "ADD") == 0){
+					bufferUint = 1;
+				}else{
+					bufferUint = 0;
+				}
+				parameter1 = HTON2(bufferUint);
+				FloatToBin.f = bufferF;
+				param1 = (FloatToBin.i & 0xFF000000) >> 24;
+				param2 = (FloatToBin.i & 0xFF0000) >> 16;
+				param3 = (FloatToBin.i & 0xFF00) >> 8;
+				param4 = (FloatToBin.i & 0xFF);
+				parameter2[0] = param1;
+				parameter2[1] = param2;
+				parameter2[2] = param3;
+				parameter2[3] = param4;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+				fwrite(&parameter1, 1, sizeof(parameter1), fp1);
+				fwrite(&parameter2, 1, sizeof(parameter2), fp1); 
+				
+			}
+			else if(strcmp(key, "STOP") == 0){  //commandNum = 6
+				commandNum = 6;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 2;
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+			}else{  // commandNum = 7
+				commandNum = 7;
+				command.commandField = HTON2(commandNum);
+				totalLength = 12 + 2;  
+				tLen1 = (totalLength & 0xFF0000) >> 16;
+				tLen2 = (totalLength & 0xFF00) >> 8;
+				tLen3 = (totalLength & 0xFF);
+				zergHeader.totalLength[0] = tLen1;
+				zergHeader.totalLength[1] = tLen2;
+				zergHeader.totalLength[2] = tLen3;
+				fgets(line, 100, fp);
+				sscanf(line, "%s %lf", garbage, bufferF);
+				FloatToBin.f = bufferF;
+				param1 = (FloatToBin.i & 0xFF000000) >> 24;
+				param2 = (FloatToBin.i & 0xFF0000) >> 16;
+				param3 = (FloatToBin.i & 0xFF00) >> 8;
+				param4 = (FloatToBin.i & 0xFF);
+				parameter2[0] = param1;
+				parameter2[1] = param2;
+				parameter2[2] = param3;
+				parameter2[3] = param4;
+				parameter1 = 0;
+				fwrite(&zergHeader, 1, sizeof(zergHeader), fp1);
+				fwrite(&command, 1, sizeof(command), fp1);
+				fwrite(&parameter1, 1, sizeof(parameter1), fp1);
+				fwrite(&parameter2, 1, sizeof(parameter2), fp1);
+				
+			}
+			break;
 		//case 0x13:
 	}
 }
