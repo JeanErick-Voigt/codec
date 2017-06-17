@@ -53,7 +53,7 @@ void main(int argc, char *argv[])
 	{
 
 		count++;
-		printf("Packet number %d\n", count);
+		//printf("Packet number %d\n", count);
 		PACKETHEADER packet;
 		fread(&packet, sizeof(packet), 1, fp);
 		int packetLength;
@@ -81,10 +81,10 @@ void main(int argc, char *argv[])
 
 		IPHEADER ip;
 		int version;
-		int ihl;
-		uint8_t mask = 1;
+		//int ihl;
+		//uint8_t mask = 1;
 		fread(&ip, sizeof(ip), 1, fp);
-		ihl = ip.versionAndIHL & 0x0F;
+		//ihl = ip.versionAndIHL & 0x0F;
 		version =  ip.versionAndIHL >> 4;
 		int ipLength = NTOH2(ip.iptotalLength);
 
@@ -104,14 +104,14 @@ void main(int argc, char *argv[])
 		//printf("Message length of zerg message %d\n", messageLength);
 		int type = zerg.versionToType & 0xF;  // This is type of message
 		int zergVersion = zerg.versionToType >> 4;  // This is version
-		printf("Version: %d\n", zergVersion);
+		printf("Version : %d\n", zergVersion);
 
 		STATUSPAYLOAD status;
 		//if message type = 0  it is a message and can do this
 		// This is the message payload branch
-		printf("Sequence: %u\n", sequence);
-		printf("From: %d\n", zergSourceID);
-		printf("To: %d\n", zergDestinationID);
+		printf("Sequence : %u\n", sequence);
+		printf("From : %d\n", zergSourceID);
+		printf("To : %d\n", zergDestinationID);
 		//printf("Ip total length %d\n", ipLength);
 		//char * payloadLength = (char*) malloc((
 		char * messagePayload;
@@ -142,10 +142,10 @@ void main(int argc, char *argv[])
 				break;
 			case 1:   //status payload
 				;
-				printf("This is fp before it reads in status %d\n", ftell(fp));
+				//printf("This is fp before it reads in status %d\n", ftell(fp));
 				fread(&status, sizeof(status), 1, fp);
 				fread(messagePayload, messageLength, 1, fp);
-				printf("Status Type is %d\n", status.statusType);
+				//printf("Status Type is %d\n", status.statusType);
 				int statusType = status.statusType; 
 				uint32_t  speed = NTOH4(status.speed);
 				int hitPoints = NTOH3(status.hitPoints);
@@ -229,7 +229,7 @@ void main(int argc, char *argv[])
 				printf("Accuracy   :  %fm\n", acc);
 				break;
 		}
-		printf("\n***********************************\n");
+		//printf("\n***********************************\n");
 		int difference = endLength - ftell(fp);
 		//printf("this is difference between end of packet and current position of file pointer %d\n", difference);
 		if(difference != 0){
@@ -238,6 +238,7 @@ void main(int argc, char *argv[])
 		
 	}
 	fclose(fp);
+	return(0);
 }
 
 
