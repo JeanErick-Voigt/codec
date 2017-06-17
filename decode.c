@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
+//#include <stdint.h>
 #include <stddef.h>
 #include <math.h>
+#include "PcapStructs.h"
 
 #define NTOH2(x) (((x << 8) & 65280) + (x >> 8))
 #define NTOH3(x) ((int) x[0] << 16) | ((int) (x[1]) << 8) | ((int) (x[2]))
@@ -18,81 +19,6 @@ int hexToDec(int x);
 double convert64ToDouble(uint64_t num);
 double convert32ToDouble(uint32_t num);
 
-
-typedef struct PcapFileHeader {
-	uint32_t magicNumber;  // File_Type_ID
-	uint16_t majorVersion; // Major_Version
-	uint16_t minorVersion;  // Minor_Version
-	uint32_t thisZone;  // GMT Offset
-	uint32_t timestampAcc;  // Accuracy Delta
-	uint32_t captureLength; // Maximum Length of a Capture
-	uint32_t linklayerType;   //Link Layer Type
-
-
-} TOPHEADER; 
-
-typedef struct PcapPacketHeader {
-	uint32_t unixEpoch;
-	uint32_t usFromEpoch;
-	uint32_t lengthDataCaptured;
-	uint32_t untruncatedPacketLength;
-} PACKETHEADER;
-
-typedef struct EthernetFrame {
-	uint16_t destMac[3];
-	uint16_t sMac[3];
-	uint16_t ethernetType; 
-	
-} ETHERNET;
-
-typedef struct ipv4Header {
-	uint8_t versionAndIHL;
-	uint8_t dscpAndECN;
-	uint16_t iptotalLength;
-	uint16_t Identification;
-	uint16_t flagstoFragmentoffset;
-	uint16_t ttltoProtocol;
-	uint16_t headerChecksum;
-	uint32_t sourceIP;
-	uint32_t destIP;
-} IPHEADER;
-
-typedef struct udpHeader {
-	uint16_t sourcePort;
-	uint16_t destPort;
-	uint16_t Length; 
-	uint16_t checksum;
-}UDP;
-
-typedef struct zergPacketHeader {
-	uint8_t versionToType;
-	uint8_t totalLength[3];
-	uint16_t sourceZergID;
-	uint16_t destinationZergID;
-	//uint32_t sequenceID;  try to do it in an array instead conversino
-	uint8_t sequenceID[4];
-}ZERG;
-
-typedef struct statusPayload { 
-	uint8_t hitPoints[3];
-	uint8_t armor;
-	uint8_t maxHitPoints[3];
-	uint8_t statusType;
-	uint8_t speed[4];
-}STATUSPAYLOAD;
-
-typedef struct commandPayload {
-	uint16_t commandField;
-} COMMAND;
-
-typedef struct gpsDataPayload{
-	uint8_t longitude[8];
-	uint8_t latitude[8];
-	uint8_t altitude[4];
-	uint8_t bearing[4];
-	uint8_t speed[4];
-	uint8_t accuracy[4];
-}GPS;
 
 
 
@@ -216,19 +142,21 @@ void main(int argc, char *argv[])
 				break;
 			case 1:   //status payload
 				;
+				printf("This is fp before it reads in status %d\n", ftell(fp));
 				fread(&status, sizeof(status), 1, fp);
 				fread(messagePayload, messageLength, 1, fp);
 				printf("Status Type is %d\n", status.statusType);
 				int statusType = status.statusType; 
-				int speed = NTOH4(status.speed);
+				uint32_t  speed = NTOH4(status.speed);
 				int hitPoints = NTOH3(status.hitPoints);
 				int maxhp = NTOH3(status.maxHitPoints);
-				printf("Name    :%s\n", messagePayload); 
-				printf("Hp      :%d/%d\n", hitPoints, maxhp);
+				printf("Name    : %s\n", messagePayload); 
+				printf("Hp      : %d/%d\n", hitPoints, maxhp);
 				char * breed = zergBreed(statusType);
-				printf("Name    :%s\n",  breed);
-				printf("Armor   :%d\n", status.armor);
-				printf("Speed   :%x\n", speed);
+				printf("Name    : %s\n",  breed);
+				printf("Armor   : %d\n", status.armor);
+				double nSpeed = convert32ToDouble(speed);
+				printf("Speed   : %lfm/s\n", nSpeed);
 				break;
 				//printf("name is: :%s", messagePayload);
 			case 2: //command payload
